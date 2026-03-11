@@ -1,0 +1,53 @@
+name: Weekly Groww Review Pulse
+
+on:
+  schedule:
+    # 12:05 UTC every Monday ≈ 17:35 IST
+    - cron: "5 12 * * MON"
+  workflow_dispatch: {}
+
+jobs:
+  weekly-pulse:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Configure environment
+        env:
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GMAIL_SENDER: ${{ secrets.GMAIL_SENDER }}
+        run: |
+          echo "XAI_API_KEY=${XAI_API_KEY}" >> .env
+          echo "GEMINI_API_KEY=${GEMINI_API_KEY}" >> .env
+          echo "GMAIL_SENDER=${GMAIL_SENDER}" >> .env
+          echo "GMAIL_RECIPIENT=spnsn9@gmail.com" >> .env
+          echo "USE_MOCK_LLM=false" >> .env
+
+      - name: Run weekly pulse pipeline (8 weeks, 1000 reviews)
+        env:
+          # Ensure the code path matches scheduler settings for weeks/count.
+          GMAIL_RECIPIENT: spnsn9@gmail.com
+        run: |
+          python -c "from scheduler import run_weekly_pulse; run_weekly_pulse()"
+
+      - name: Upload weekly pulse as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-pulse-report
+          path: |
+            output/weekly_pulse.md
+            output/weekly_pulse.html
+

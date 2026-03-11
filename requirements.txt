@@ -1,0 +1,11 @@
+google-play-scraper
+langdetect
+openai
+google-generativeai
+jinja2
+google-api-python-client
+google-auth-oauthlib
+python-dotenv
+streamlit
+pandas
+schedule
