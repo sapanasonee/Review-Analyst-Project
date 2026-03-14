@@ -562,6 +562,52 @@ In addition to the long-running Python scheduler, a GitHub Actions workflow (`.g
 
 This provides a **cloud scheduler** that mirrors the local behaviour. For Gmail delivery from Actions, you must ensure suitable credentials are available to the workflow (for most real setups, that means using a service account or SMTP-based mailer instead of interactive OAuth).
 
+---
+
+## Deployment
+
+The **scheduler is deployed via GitHub Actions**: no separate server or long-running process is required. Pushing the repository and configuring secrets is the full deployment.
+
+| Item | Detail |
+|---|---|
+| **What is deployed** | The weekly-pulse pipeline runs as a scheduled job in GitHub Actions (same as `scheduler.run_weekly_pulse()`: 8 weeks, 1000 reviews, recipient `spnsn9@gmail.com`). |
+| **Workflow** | `.github/workflows/weekly_pulse.yml` |
+| **Trigger** | Cron: every Monday 12:05 UTC (≈ 17:35 IST). Optional: run manually via **Actions → Weekly Groww Review Pulse → Run workflow**. |
+| **Outputs** | Gmail draft (if credentials are configured) and workflow artifacts: `weekly_pulse.md`, `weekly_pulse.html`. |
+
+### One-time setup (deployment steps)
+
+1. **Push the repo** to GitHub (branch `main` or your default branch).
+2. **Add Actions secrets** (Settings → Secrets and variables → Actions):
+   - `XAI_API_KEY` — xAI/Grok API key (or leave empty and set `USE_MOCK_LLM=true` in the workflow to use keyword fallback).
+   - `GEMINI_API_KEY` — Google Gemini API key.
+   - `GMAIL_SENDER` — Gmail address used for sending.
+3. **Gmail from Actions (optional):**  
+   To create the draft from CI, the workflow needs Gmail credentials. Options:
+   - Store OAuth `credentials.json` content as a secret (e.g. `GMAIL_CREDENTIALS_JSON`) and add a step to write `config/credentials.json` and run a one-time token flow offline, then store the refresh token as a secret; or  
+   - Use an app password / SMTP and a small code path that sends via SMTP instead of the Gmail API.  
+   If not configured, the workflow still runs Phases 1–3 and uploads the pulse as artifacts; Phase 4 (draft) is skipped or fails without affecting artifact upload.
+4. **Enable Actions** (Settings → Actions → General): allow read and write permissions if the workflow needs to write artifacts.
+
+After this, the workflow runs every Monday at 17:35 IST. No other deployment step is required.
+
+### Docker & Render
+
+| Component | Detail |
+|---|---|
+| **Backend** | Containerized with Docker and hosted on **Render (Free Tier)**. |
+| **Frontend** | Hosted on **Vercel**. |
+| **Dockerfile** | `Dockerfile` at project root — `python:3.11-slim`, installs deps, exposes port `10000`, starts with `uvicorn main:app`. |
+| **`.dockerignore`** | Excludes `.env`, `__pycache__`, `.git`, `venv`, `.vscode` to keep the image lean. |
+
+#### Pulse Trick (Uptime Monitoring)
+
+Render's free tier puts services to sleep after ~15 minutes of inactivity. To keep the backend warm:
+
+- Use an **uptime monitoring service** (e.g. UptimeRobot, cron-job.org, or Render's own cron job) to ping the health endpoint every **14 minutes**.
+- This ensures the service stays awake during working hours and responds instantly when users access the dashboard or trigger the pipeline.
+- Outside working hours, letting it sleep is fine — it spins back up in ~30 seconds on the next request.
+
 ## Future Enhancements (Out of Scope)
 
 - **Historical tracking:** Store weekly analyses in a database to show trends over time.

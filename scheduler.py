@@ -28,6 +28,7 @@ def run_weekly_pulse():
     """
     Run the full pipeline once, forcing the scheduled recipient and limits (8 weeks, 1000 reviews).
     """
+    print(f"\nTriggered at: {time.strftime('%Y-%m-%d %H:%M:%S')}")
     os.environ["GMAIL_RECIPIENT"] = SCHEDULED_RECIPIENT
     print("\n=== Scheduled Weekly Pulse Run ===")
     print(f"GMAIL_RECIPIENT set to {SCHEDULED_RECIPIENT}")
@@ -47,7 +48,8 @@ def main():
     schedule.every().monday.at("17:35").do(run_weekly_pulse)
 
     print("Scheduler started.")
-    print("Configured to run weekly pulse every Monday at 17:35 (local time).")
+    print(f"Current time: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+    print("Next run: Monday at 17:35 (local time)")
     print("Press Ctrl+C to stop.")
 
     while True:

@@ -24,12 +24,13 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
-      - name: Configure environment
+      - name: Prepare config and environment
         env:
           XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GMAIL_SENDER: ${{ secrets.GMAIL_SENDER }}
         run: |
+          mkdir -p config output
           echo "XAI_API_KEY=${XAI_API_KEY}" >> .env
           echo "GEMINI_API_KEY=${GEMINI_API_KEY}" >> .env
           echo "GMAIL_SENDER=${GMAIL_SENDER}" >> .env
@@ -38,7 +39,6 @@ jobs:
 
       - name: Run weekly pulse pipeline (8 weeks, 1000 reviews)
         env:
-          # Ensure the code path matches scheduler settings for weeks/count.
           GMAIL_RECIPIENT: spnsn9@gmail.com
         run: |
           python -c "from scheduler import run_weekly_pulse; run_weekly_pulse()"
@@ -50,4 +50,5 @@ jobs:
           path: |
             output/weekly_pulse.md
             output/weekly_pulse.html
+          if-no-files-found: ignore
 

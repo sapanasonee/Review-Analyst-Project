@@ -84,6 +84,34 @@ def create_draft(subject: str, html_body: str, to: str) -> str:
     return draft["id"]
 
 
+def send_email(subject: str, html_body: str, to: str) -> str:
+    """
+    Send an email (not a draft) with the given subject, HTML body, and To address.
+    Returns the message ID. Uses the same gmail.compose scope.
+    """
+    from googleapiclient.discovery import build
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["To"] = to
+
+    plain = re.sub(r"<[^>]+>", "", html_body).strip()[:500]
+    msg.attach(MIMEText(plain, "plain"))
+    msg.attach(MIMEText(html_body, "html"))
+
+    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode("ascii").rstrip("=")
+
+    creds = _get_credentials()
+    service = build("gmail", "v1", credentials=creds)
+    result = (
+        service.users()
+        .messages()
+        .send(userId="me", body={"raw": raw})
+        .execute()
+    )
+    return result["id"]
+
+
 def _load_week_label_from_html(html_path: Path) -> str:
     """Extract 'Week of X – Y' from the saved HTML report."""
     text = html_path.read_text(encoding="utf-8")
